@@ -25,6 +25,8 @@ Requires `gawk`.
   Nijmegen was on a weekend or the same evening already had a trip to Nijmegen.
 - **Graafseweg/Wolfskuil bus rides:** declarable only if you do not return to
   Arnhem that day and the next day is a weekday.
+- **OV fiets rentals:** declarable only on a working day (Monday to Friday) when
+  no bus leg to or from a work stop was declared that day.
 
 ## Notes
 

@@ -69,7 +69,7 @@ BEGIN {
   W["Nijmegen Heyendaal"] = 1
 }
 
-clean($8) != "Reis" { next }
+clean($8) != "Reis" && clean($10) != "OV Fiets" { next }
 
 {
   d = clean($1); from = clean($3); to = clean($5)
@@ -80,7 +80,8 @@ clean($8) != "Reis" { next }
   if (from == "Arnhem Centraal" && isNijTrain(to))      dir = "IN"    # to Nijmegen
   else if (to == "Arnhem Centraal" && isNijTrain(from)) dir = "OUT"   # back to Arnhem
 
-  if (isGraaf(to))                                   cat = "cond"
+  if (clean($10) == "OV Fiets")                      cat = "bike"
+  else if (isGraaf(to))                              cat = "cond"
   else if (dir != "" || (from in W) || (to in W))    cat = "base"
   else                                               next
 
@@ -88,6 +89,8 @@ clean($8) != "Reis" { next }
   L_day[n] = d; L_from[n] = from; L_to[n] = to
   L_time[n] = tS "-" tE; L_cost[n] = c; L_cat[n] = cat
   L_dir[n] = dir; L_st[n] = mins(tS)
+  # bus leg touching a work stop (used to rule out OV fiets on that day)
+  L_bus[n] = (clean($10) == "Bus, Tram en Metro reizen" && ((from in W) || (to in W)))
 
   if (!(d in dseen)) { dseen[d] = ++nd; dlist[nd] = d }
   if (dir == "OUT") hasOut[d] = 1                     # returned to Arnhem that day
@@ -101,6 +104,7 @@ END {
   # Pass 2: decide each leg in chronological order
   lastIn = ""
   for (i = 1; i <= n; i++) {
+    if (L_cat[i] == "bike") continue                  # OV fiets: decided in pass 3
     d = L_day[i]; s = L_st[i]; c = L_cost[i]
     sx = ""; dec = 0
     roundtrip = (d in lastEveOut) && lastEveOut[d] > i   # a later evening return exists
@@ -135,6 +139,20 @@ END {
       sx = "commute"; dec = c                         # daytime legs and work bus legs
     }
 
+    S[i] = sx; D[i] = dec
+    if (L_bus[i] && dec > 0) busDeclared[d] = 1       # a work-stop bus leg was declared
+    dayTot[d] += c; dayDec[d] += dec
+    grandTot += c; grandDec += dec
+  }
+
+  # Pass 3: OV fiets rentals. Declarable only on a working day (Mon-Fri)
+  # when no work-stop bus leg was declared that day.
+  for (i = 1; i <= n; i++) {
+    if (L_cat[i] != "bike") continue
+    d = L_day[i]; c = L_cost[i]
+    if (isWeekend(d))                  { sx = "not declarable: OV fiets on weekend"; dec = 0 }
+    else if (busDeclared[d])           { sx = "not declarable: work bus declared that day"; dec = 0 }
+    else                               { sx = "declarable: OV fiets, working day, no work bus"; dec = c }
     S[i] = sx; D[i] = dec
     dayTot[d] += c; dayDec[d] += dec
     grandTot += c; grandDec += dec
