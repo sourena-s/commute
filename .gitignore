@@ -1,0 +1,2 @@
+# Travel transaction exports contain personal data; keep them out of the repo.
+*.csv
