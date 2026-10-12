@@ -80,7 +80,10 @@ clean($8) != "Reis" && clean($10) != "OV Fiets" { next }
   if (from == "Arnhem Centraal" && isNijTrain(to))      dir = "IN"    # to Nijmegen
   else if (to == "Arnhem Centraal" && isNijTrain(from)) dir = "OUT"   # back to Arnhem
 
-  if (clean($10) == "OV Fiets")                      cat = "bike"
+  if (clean($10) == "OV Fiets") {                    # only rentals that start in Nijmegen count
+    if (from ~ /^Nijmegen/) cat = "bike"
+    else                    next
+  }
   else if (isGraaf(to))                              cat = "cond"
   else if (dir != "" || (from in W) || (to in W))    cat = "base"
   else                                               next
